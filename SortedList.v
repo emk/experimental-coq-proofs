@@ -127,13 +127,12 @@ Proof.
       inversion H_sorted_l as [H_sorted_l' HdRel_n'_l'].
 
       apply Sorted_cons.
-      { apply IHl'. auto. }
-      {
+      SSCase "Sorted (insert_sorted n l')". apply IHl'. auto.
+      SSCase "HdRel n' (insert_sorted n l')".
         apply IHl' in H_sorted_l'.
         destruct l'; simpl; auto.
         destruct (n <=? n0); auto.
         inversion HdRel_n'_l'. auto.
-      }
 Qed.
 
 Extraction Language Haskell.
