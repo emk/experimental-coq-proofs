@@ -119,20 +119,20 @@ Theorem insert_sorted_stays_sorted : forall n l,
   Sorted leb l -> Sorted leb (insert_sorted n l).
 Proof.
   intros n l H_sorted_l.
-  induction l; unfold insert_sorted; auto.
+  induction l as [|n' l']; simpl; auto.
   Case "l = n' :: l'".
-    destruct (n <=? a) eqn:H_n_le_a; auto.
-    SCase "n <=? a = false".
-      fold insert_sorted.
+    destruct (n <=? n') eqn:H_n_le_n'; auto.
+    SCase "n <=? n' = false".
       apply Sorted_inv in H_sorted_l.
-      inversion H_sorted_l as [H_sorted_l' HdRel_a_l].
+      inversion H_sorted_l as [H_sorted_l' HdRel_n'_l'].
+
       apply Sorted_cons.
-      { apply IHl. auto. }
+      { apply IHl'. auto. }
       {
-        apply IHl in H_sorted_l'.
-        destruct l; simpl; auto.
+        apply IHl' in H_sorted_l'.
+        destruct l'; simpl; auto.
         destruct (n <=? n0); auto.
-        inversion HdRel_a_l. auto.
+        inversion HdRel_n'_l'. auto.
       }
 Qed.
 
