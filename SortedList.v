@@ -3,7 +3,7 @@ Require Import SfLib.
 Require Import Coq.Structures.Orders.
 Require Import Coq.Sorting.Sorting.
 
-(* From Coq.Structures.Orders. *)
+(** From Coq.Structures.Orders. *)
 Local Coercion is_true : bool >-> Sortclass.
 Hint Unfold is_true.
 
@@ -112,18 +112,16 @@ Proof.
   apply le_implies_leb_true. assumption.
 Qed.
 
+Hint Constructors Sorted.
+Hint Constructors HdRel.
+
 Theorem insert_sorted_stays_sorted : forall n l,
   Sorted leb l -> Sorted leb (insert_sorted n l).
 Proof.
   intros n l H_sorted_l.
-  induction l.
-  Case "l = []".
-    unfold insert_sorted. constructor; constructor.
+  induction l; unfold insert_sorted; auto.
   Case "l = n' :: l'".
-    unfold insert_sorted.
-    destruct (n <=? a) eqn:H_n_le_a.
-    SCase "n <=? a = true".
-      constructor. { apply H_sorted_l. } { constructor. apply H_n_le_a. }
+    destruct (n <=? a) eqn:H_n_le_a; auto.
     SCase "n <=? a = false".
       fold insert_sorted. constructor.
       { apply IHl. apply Sorted_inv in H_sorted_l. inversion H_sorted_l. assumption. }
@@ -131,15 +129,11 @@ Proof.
         apply Sorted_inv in H_sorted_l. inversion H_sorted_l.
         apply IHl in H.
         destruct l.
-        { simpl. constructor. apply flip_not_leb in H_n_le_a. assumption. }
-        { unfold insert_sorted. fold insert_sorted.
+        { apply flip_not_leb in H_n_le_a. simpl. auto. }
+        { simpl. 
           destruct (n <=? n0) eqn: H_n_lt_n0.
-          {
-            constructor. apply flip_not_leb in H_n_le_a. apply H_n_le_a.
-          }
-          {
-            constructor. inversion H0. assumption.
-          }
+          { auto using flip_not_leb. }
+          { inversion H0. auto. }
         }
       }
 Qed.
