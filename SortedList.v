@@ -104,13 +104,13 @@ Proof. reflexivity. Qed.
    the omega tactic. *)
 Theorem flip_not_le : forall (a b : nat), not (a <= b) -> b <= a.
 Proof. intros. omega. Qed.
-Hint Resolve flip_not_le.
 
 Theorem flip_not_leb : forall (a b : nat), (a <=? b) = false -> b <=? a.
 Proof.
   intros. apply leb_false in H. apply flip_not_le in H.
   apply le_implies_leb_true. assumption.
 Qed.
+Hint Resolve flip_not_leb.
 
 Hint Constructors Sorted.
 Hint Constructors HdRel.
@@ -123,18 +123,16 @@ Proof.
   Case "l = n' :: l'".
     destruct (n <=? a) eqn:H_n_le_a; auto.
     SCase "n <=? a = false".
-      fold insert_sorted. constructor.
-      { apply IHl. apply Sorted_inv in H_sorted_l. inversion H_sorted_l. assumption. }
+      fold insert_sorted.
+      apply Sorted_inv in H_sorted_l.
+      inversion H_sorted_l as [H_sorted_l' HdRel_a_l].
+      apply Sorted_cons.
+      { apply IHl. auto. }
       {
-        apply Sorted_inv in H_sorted_l. inversion H_sorted_l.
-        apply IHl in H.
-        destruct l.
-        { apply flip_not_leb in H_n_le_a. simpl. auto. }
-        { simpl. 
-          destruct (n <=? n0) eqn: H_n_lt_n0.
-          { auto using flip_not_leb. }
-          { inversion H0. auto. }
-        }
+        apply IHl in H_sorted_l'.
+        destruct l; simpl; auto.
+        destruct (n <=? n0); auto.
+        inversion HdRel_a_l. auto.
       }
 Qed.
 
