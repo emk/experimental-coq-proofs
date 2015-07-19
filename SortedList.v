@@ -2,7 +2,7 @@ Require Import SfLib.
 Require Import Coq.Structures.Orders.
 Require Import Coq.Sorting.Sorting.
 
-(** From Coq.Structures.Orders. *)
+(* From Coq.Structures.Orders. *)
 Local Coercion is_true : bool >-> Sortclass.
 Hint Unfold is_true.
 
@@ -35,16 +35,26 @@ Proof.
   intros contra. inversion contra.
 Qed.
 
-(* Copied from https://github.com/timjb/software-foundations/blob/master/Logic.v *)
+(* There's probably a built-in which does this, but I can't find it. *)
+Ltac elim_true_eq_false :=
+  match goal with
+    | [ |- true = false -> _ ] => intros contra; inversion contra
+  end.
+
+(* Alternate: https://github.com/timjb/software-foundations/blob/master/Logic.v *)
 Theorem leb_false : forall n m,
   n <=? m = false -> ~(n <= m).
 Proof.
   intros n m. generalize dependent n.
-  induction m as [|m'].
-  Case "n = O". intros n h lte. inversion lte. rewrite H in h. inversion h.
-  Case "n = S n'". intros n h lte. destruct n as [| n'].
-    inversion h.
-    apply IHm' in h. apply h. apply le_S_n. apply lte.
+  (* Give the pattern of our proof, and simplify. *)
+  induction m; destruct n; simpl;
+    (* Eliminate cases with obvious contractions. *)
+    try elim_true_eq_false.
+  Case "~ S n <= 0". auto using le_Sn_0.
+  Case "n <=? m = false -> ~ S n <= S m".
+     (* Use our induction hypothesis to rewrite the left-hand side,
+        then use omega for logic crunching. *)
+    intros H_not_leq_n_m. apply IHm in H_not_leq_n_m. omega.
 Qed.
 
 Example test_Sorted : Sorted leb [1; 2; 3].
