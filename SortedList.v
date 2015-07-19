@@ -1,3 +1,7 @@
+(*=========================================================================
+  Setup & Sorting
+*)
+
 Require Import SfLib.
 Require Import Coq.Structures.Orders.
 Require Import Coq.Sorting.Sorting.
@@ -20,44 +24,6 @@ Module Import PriorityOrder <: TotalLeBool.
   Proof. induction a1; destruct a2; simpl; auto. Qed.
 End PriorityOrder.
 
-(* There's probably a built-in which does this, but I can't find it. *)
-Ltac elim_true_eq_false :=
-  match goal with
-    | [ |- false = true -> _ ] => intros contra; inversion contra
-    | [ |- true = false -> _ ] => intros contra; inversion contra
-  end.
-
-Theorem leb_true : forall n m,
-  n <=? m = true -> n <= m.
-Proof.
-  (* Dispose of most cases mechanically using built-in hypotheses. *)
-  induction n; destruct m; simpl; auto using le_0_n, le_n_S.
-  (* The remaining case is an obvious contradiction. *)
-  elim_true_eq_false.
-Qed.
-
-Theorem le_implies_leb_true : forall n m, n <= m -> n <=? m.
-Proof.
-  induction n; destruct m; simpl; auto using le_S_n.
-  intros contra. inversion contra.
-Qed.
-
-(* Alternate: https://github.com/timjb/software-foundations/blob/master/Logic.v *)
-Theorem leb_false : forall n m,
-  n <=? m = false -> ~(n <= m).
-Proof.
-  intros n m. generalize dependent n.
-  (* Give the pattern of our proof, and simplify. *)
-  induction m; destruct n; simpl;
-    (* Eliminate cases with obvious contractions. *)
-    try elim_true_eq_false.
-  Case "~ S n <= 0". auto using le_Sn_0.
-  Case "n <=? m = false -> ~ S n <= S m".
-     (* Use our induction hypothesis to rewrite the left-hand side,
-        then use omega for logic crunching. *)
-    intros H_not_leq_n_m. apply IHm in H_not_leq_n_m. omega.
-Qed.
-
 Example test_Sorted : Sorted leb [1; 2; 3].
 Proof. auto. Qed.
 
@@ -72,6 +38,72 @@ Proof.
     | [ H : is_true (2 <=? 1) |- False ] => inversion_clear H
   end.
 Qed.
+
+
+(*=========================================================================
+  Theorems about inequality
+
+  Much of this machinery exists to translate between boolean expressions
+  like `leb a b` and logical propositions like `a <= b`.
+*)
+
+(* Deal with implications of the form `ObviouslyFalse -> P` by introducting
+  `ObviouslyFalse` as a hypotheses and inverting it. There's probably a
+  built-in which does this, but I can't find it. *)
+Ltac antecedent_is_false :=
+  (* Use solve to make sure we either prove our goal completely, or fail
+     atomically and leave the hypotheses unchanged. *)
+  solve [ intros contra; inversion contra ].
+
+Theorem leb_true : forall n m,
+  n <=? m = true -> n <= m.
+Proof.
+  (* Dispose of most cases mechanically using built-in hypotheses. *)
+  induction n; destruct m; simpl; auto using le_0_n, le_n_S.
+  (* The remaining case is an obvious contradiction. *)
+  antecedent_is_false.
+Qed.
+
+Theorem le_implies_leb_true : forall n m, n <= m -> n <=? m.
+Proof.
+  induction n; destruct m; simpl; auto using le_S_n.
+  antecedent_is_false.
+Qed.
+
+(* Alternate: https://github.com/timjb/software-foundations/blob/master/Logic.v
+   This gave me the hint to induct on m. *)
+Theorem leb_false : forall n m,
+  n <=? m = false -> ~(n <= m).
+Proof.
+  intros n m. generalize dependent n.
+  (* Give the pattern of our proof, and simplify. *)
+  induction m; destruct n; simpl;
+    (* Eliminate cases with obvious contractions. *)
+    try antecedent_is_false.
+  Case "~ S n <= 0". auto using le_Sn_0.
+  Case "n <=? m = false -> ~ S n <= S m".
+     (* Use our induction hypothesis to rewrite the left-hand side,
+        then use omega for logic crunching. *)
+    intros H_not_leq_n_m. apply IHm in H_not_leq_n_m. omega.
+Qed.
+
+(* As a general rule, we can solve any trivial theorem about inequalities using
+   the omega tactic. *)
+Lemma flip_not_le : forall (a b : nat), not (a <= b) -> b <= a.
+Proof. intros. omega. Qed.
+
+(* This is somewhat specific (and deliberately weak) lemma that turns
+   up a lot in our main proof. *)
+Lemma flip_not_leb : forall (a b : nat), (a <=? b) = false -> b <=? a.
+Proof.
+  intros. apply leb_false in H. apply flip_not_le in H.
+  apply le_implies_leb_true. assumption.
+Qed.
+
+
+(*=========================================================================
+  Insertion
+*)
 
 Fixpoint insert_sorted (n : nat) (l : list nat) : list nat :=
   match l with
@@ -97,18 +129,12 @@ Example test_insert_2_1_1 :
   insert_sorted 1 (insert_sorted 1 (insert_sorted 2 [])) = [1; 1; 2].
 Proof. reflexivity. Qed.
 
-(* As a general rule, we can solve any trivial theorem about inequalities using
-   the omega tactic. *)
-Theorem flip_not_le : forall (a b : nat), not (a <= b) -> b <= a.
-Proof. intros. omega. Qed.
 
-Theorem flip_not_leb : forall (a b : nat), (a <=? b) = false -> b <=? a.
-Proof.
-  intros. apply leb_false in H. apply flip_not_le in H.
-  apply le_implies_leb_true. assumption.
-Qed.
+(*=========================================================================
+  Proof: Insertion preserves sorting
+*)
+
 Hint Resolve flip_not_leb.
-
 Hint Constructors Sorted.
 Hint Constructors HdRel.
 
@@ -131,6 +157,11 @@ Proof.
         destruct (n <=? n0); auto.
         inversion HdRel_n'_l'. auto.
 Qed.
+
+
+(*=========================================================================
+  Generating Haskell code
+*)
 
 Extraction Language Haskell.
 Extract Inductive list => "([])" [ "[]" "(:)" ].
