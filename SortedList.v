@@ -1,4 +1,3 @@
-Require Import Arith.
 Require Import SfLib.
 Require Import Coq.Structures.Orders.
 Require Import Coq.Sorting.Sorting.
@@ -6,11 +5,6 @@ Require Import Coq.Sorting.Sorting.
 (** From Coq.Structures.Orders. *)
 Local Coercion is_true : bool >-> Sortclass.
 Hint Unfold is_true.
-
-(* This allows us to use the boolean value 'true' as if it were the logical
-   proposition True. *)
-Example test_true : true.
-Proof. auto. Qed.
 
 (* From Coq.Sorting.Mergesort NatOrder example. Highest priority is 0. *)
 Module Import PriorityOrder <: TotalLeBool.
@@ -26,25 +20,19 @@ Module Import PriorityOrder <: TotalLeBool.
   Proof. induction a1; destruct a2; simpl; auto. Qed.
 End PriorityOrder.
 
-(* Based on https://github.com/timjb/software-foundations/blob/master/Logic.v *)
 Theorem leb_true : forall n m,
   n <=? m = true -> n <= m.
 Proof.
-  induction n as [|n'].
-  Case "n = O". intros. apply le_0_n.
-  Case "n = S n'". destruct m as [| m'].
-    SCase "m = O". intros contra. inversion contra.
-    SCase "m = S m'". intros H. simpl in H.
-    apply le_n_S. apply IHn'. apply H.
+  (* Dispose of most cases mechanically using built-in hypotheses. *)
+  induction n; destruct m; simpl; auto using le_0_n, le_n_S.
+  (* The remaining case is an obvious contradiction. *)
+  intros contra. inversion contra.
 Qed.
 
 Theorem le_implies_leb_true : forall n m, n <= m -> n <=? m.
 Proof.
-  induction n as [|n'].
-  Case "n = O". auto.
-  Case "n = S n'". destruct m as [| m'].
-    SCase "m = O". intros H. inversion H.
-    SCase "m = S m'". intros H. simpl. apply IHn'. apply le_S_n. assumption.
+  induction n; destruct m; simpl; auto using le_S_n.
+  intros contra. inversion contra.
 Qed.
 
 (* Copied from https://github.com/timjb/software-foundations/blob/master/Logic.v *)
@@ -58,8 +46,6 @@ Proof.
     inversion h.
     apply IHm' in h. apply h. apply le_S_n. apply lte.
 Qed.
-
-Module Import PrioritySort := Sort PriorityOrder.
 
 Example test_Sorted : Sorted leb [1; 2; 3].
 Proof. auto. Qed.
