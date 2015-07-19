@@ -20,13 +20,20 @@ Module Import PriorityOrder <: TotalLeBool.
   Proof. induction a1; destruct a2; simpl; auto. Qed.
 End PriorityOrder.
 
+(* There's probably a built-in which does this, but I can't find it. *)
+Ltac elim_true_eq_false :=
+  match goal with
+    | [ |- false = true -> _ ] => intros contra; inversion contra
+    | [ |- true = false -> _ ] => intros contra; inversion contra
+  end.
+
 Theorem leb_true : forall n m,
   n <=? m = true -> n <= m.
 Proof.
   (* Dispose of most cases mechanically using built-in hypotheses. *)
   induction n; destruct m; simpl; auto using le_0_n, le_n_S.
   (* The remaining case is an obvious contradiction. *)
-  intros contra. inversion contra.
+  elim_true_eq_false.
 Qed.
 
 Theorem le_implies_leb_true : forall n m, n <= m -> n <=? m.
@@ -34,12 +41,6 @@ Proof.
   induction n; destruct m; simpl; auto using le_S_n.
   intros contra. inversion contra.
 Qed.
-
-(* There's probably a built-in which does this, but I can't find it. *)
-Ltac elim_true_eq_false :=
-  match goal with
-    | [ |- true = false -> _ ] => intros contra; inversion contra
-  end.
 
 (* Alternate: https://github.com/timjb/software-foundations/blob/master/Logic.v *)
 Theorem leb_false : forall n m,
